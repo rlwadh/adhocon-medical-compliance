@@ -8,34 +8,42 @@ const ClassificationAssistant = ({ onComplete }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
 
+  // Step configuration mit flacher Struktur
   const steps = [
     {
       id: 'step1',
-      field: 'deviceType'
+      field: 'deviceType',
+      options: ['software', 'hardware', 'combination']
     },
     {
       id: 'step2', 
-      field: 'invasiveness'
+      field: 'invasiveness',
+      options: ['non_invasive', 'invasive_body_orifice', 'surgically_invasive']
     },
     {
       id: 'step3',
-      field: 'duration'
+      field: 'duration',
+      options: ['transient', 'short_term', 'long_term']
     },
     {
       id: 'step4',
-      field: 'energySource'
+      field: 'energySource',
+      options: ['non_active', 'active_therapeutic', 'active_diagnostic']
     },
     {
       id: 'step5',
-      field: 'bodySystem'
+      field: 'bodySystem',
+      options: ['central_nervous', 'cardiovascular', 'other']
     },
     {
       id: 'step6',
-      field: 'drugDelivery'
+      field: 'drugDelivery',
+      options: ['no_drug', 'drug_delivery', 'drug_dosing']
     },
     {
       id: 'step7',
-      field: 'riskFactors'
+      field: 'riskFactors',
+      options: ['contraceptive', 'disinfection', 'biological_origin', 'none']
     }
   ];
 
@@ -73,10 +81,10 @@ const ClassificationAssistant = ({ onComplete }) => {
     if (answers.riskFactors === 'biological_origin') score += 2;
     
     // Classification based on score
-    if (score <= 2) return 'Class I';
-    if (score <= 5) return 'Class IIa';
-    if (score <= 8) return 'Class IIb';
-    return 'Class III';
+    if (score <= 2) return 'class_i';
+    if (score <= 5) return 'class_iia';
+    if (score <= 8) return 'class_iib';
+    return 'class_iii';
   };
 
   const handleAnswer = (field, value) => {
@@ -125,50 +133,6 @@ const ClassificationAssistant = ({ onComplete }) => {
     }
   };
 
-  // Helper function to get nested translation
-  const getStepOptions = (stepId) => {
-    try {
-      // Access the options object for this step
-      const optionsKey = `classification.steps.${stepId}.options`;
-      const optionsObj = t(optionsKey);
-      
-      // If translation returns a string, it means the key wasn't found
-      if (typeof optionsObj === 'string') {
-        console.warn(`Options not found for ${optionsKey}`);
-        return {};
-      }
-      
-      return optionsObj || {};
-    } catch (error) {
-      console.warn(`Error getting options for ${stepId}:`, error);
-      return {};
-    }
-  };
-
-  const getClassResult = (classKey) => {
-    try {
-      const classData = t(`classification.results.classes.${classKey}`);
-      
-      // If translation returns a string, it means the key wasn't found
-      if (typeof classData === 'string') {
-        return {
-          name: classKey,
-          description: "Classification description not available",
-          requirements: "Requirements not available"
-        };
-      }
-      
-      return classData;
-    } catch (error) {
-      console.warn(`Error getting class data for ${classKey}:`, error);
-      return {
-        name: classKey,
-        description: "Classification description not available", 
-        requirements: "Requirements not available"
-      };
-    }
-  };
-
   const currentStepData = steps[currentStep];
   const currentField = currentStepData?.field;
   const selectedValue = answers[currentField];
@@ -197,29 +161,37 @@ const ClassificationAssistant = ({ onComplete }) => {
 
   // Results State
   if (result) {
-    const resultData = getClassResult(result);
-    
     return (
       <div className="max-w-4xl mx-auto p-8">
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6">
             <h2 className="text-2xl font-bold text-white">
-              {t('classification.results.title')}
+              {t('classification.results_title')}
             </h2>
           </div>
           
           <div className="p-8">
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-                <span className="text-3xl font-bold text-green-600">{result.split(' ')[1]}</span>
+                <span className="text-3xl font-bold text-green-600">
+                  {result === 'class_i' ? 'I' : 
+                   result === 'class_iia' ? 'IIa' : 
+                   result === 'class_iib' ? 'IIb' : 'III'}
+                </span>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                {t('classification.results.class')}: {resultData.name}
+                {t('classification.results_class')}: {t(`classification.${result}_name`)}
               </h3>
-              <p className="text-gray-600 mb-4">{resultData.description}</p>
+              <p className="text-gray-600 mb-4">
+                {t(`classification.${result}_description`)}
+              </p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">{t('classification.results.next_steps')}:</h4>
-                <p className="text-blue-800">{resultData.requirements}</p>
+                <h4 className="font-semibold text-blue-900 mb-2">
+                  {t('classification.results_next_steps')}:
+                </h4>
+                <p className="text-blue-800">
+                  {t(`classification.${result}_requirements`)}
+                </p>
               </div>
             </div>
             
@@ -228,13 +200,13 @@ const ClassificationAssistant = ({ onComplete }) => {
                 onClick={handleCreateProject}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
-                {t('classification.results.create_project')}
+                {t('classification.results_create_project')}
               </button>
               <button
                 onClick={handleStartOver}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
               >
-                {t('classification.results.start_over')}
+                {t('classification.results_start_over')}
               </button>
             </div>
           </div>
@@ -244,8 +216,6 @@ const ClassificationAssistant = ({ onComplete }) => {
   }
 
   // Question Steps
-  const stepOptions = getStepOptions(currentStepData.id);
-
   return (
     <div className="max-w-4xl mx-auto p-8">
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -263,10 +233,10 @@ const ClassificationAssistant = ({ onComplete }) => {
         <div className="bg-gray-50 px-8 py-4">
           <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
             <span>
-              {t('classification.progress.step')} {currentStep + 1} {t('classification.progress.of')} {steps.length}
+              {t('classification.progress_step')} {currentStep + 1} {t('classification.progress_of')} {steps.length}
             </span>
             <span>
-              {Math.round(((currentStep + 1) / steps.length) * 100)}% {t('classification.progress.completed')}
+              {Math.round(((currentStep + 1) / steps.length) * 100)}% {t('classification.progress_completed')}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -281,20 +251,20 @@ const ClassificationAssistant = ({ onComplete }) => {
         <div className="p-8">
           <div className="mb-8">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {t(`classification.steps.${currentStepData.id}.title`)}
+              {t(`classification.${currentStepData.id}_title`)}
             </h3>
             <p className="text-gray-700 text-lg">
-              {t(`classification.steps.${currentStepData.id}.question`)}
+              {t(`classification.${currentStepData.id}_question`)}
             </p>
           </div>
 
           {/* Options */}
           <div className="space-y-3 mb-8">
-            {Object.entries(stepOptions).map(([key, label]) => (
+            {currentStepData.options.map((optionKey) => (
               <label
-                key={key}
+                key={optionKey}
                 className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedValue === key
+                  selectedValue === optionKey
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
@@ -302,21 +272,23 @@ const ClassificationAssistant = ({ onComplete }) => {
                 <input
                   type="radio"
                   name={currentField}
-                  value={key}
-                  checked={selectedValue === key}
+                  value={optionKey}
+                  checked={selectedValue === optionKey}
                   onChange={(e) => handleAnswer(currentField, e.target.value)}
                   className="sr-only"
                 />
                 <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                  selectedValue === key
+                  selectedValue === optionKey
                     ? 'border-blue-500 bg-blue-500'
                     : 'border-gray-300'
                 }`}>
-                  {selectedValue === key && (
+                  {selectedValue === optionKey && (
                     <div className="w-2 h-2 rounded-full bg-white"></div>
                   )}
                 </div>
-                <span className="text-gray-900">{label}</span>
+                <span className="text-gray-900">
+                  {t(`classification.${currentStepData.id}_option_${optionKey}`)}
+                </span>
               </label>
             ))}
           </div>
