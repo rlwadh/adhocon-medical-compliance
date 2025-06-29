@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const ClassificationAssistant = ({ onComplete }) => {
+const ClassificationAssistant = ({ onComplete, onBack }) => {
   const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -103,6 +103,8 @@ const ClassificationAssistant = ({ onComplete }) => {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    } else if (onBack) {
+      onBack();
     }
   };
 
@@ -297,12 +299,7 @@ const ClassificationAssistant = ({ onComplete }) => {
           <div className="flex justify-between">
             <button
               onClick={handleBack}
-              disabled={currentStep === 0}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                currentStep === 0
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-              }`}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
             >
               {t('classification.back')}
             </button>
