@@ -113,3 +113,66 @@ html:not(.dark) .test-change {
   background-color: blue !important;
   color: white !important;
 }
+/* styles/globals.css - DIESE REGELN HINZUFÜGEN (am Ende) */
+
+/* LIGHT MODE TEXT FIXES */
+html:not(.dark) {
+  /* Haupttexte im Light Mode */
+  color: #1f2937;
+}
+
+html:not(.dark) body {
+  color: #1f2937 !important;
+}
+
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4 {
+  color: #111827 !important;
+}
+
+/* Welcome Text Fixes */
+html:not(.dark) .text-gray-600 {
+  color: #4b5563 !important;
+}
+
+html:not(.dark) .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+html:not(.dark) .text-gray-700 {
+  color: #374151 !important;
+}
+
+/* Feature Cards Light Mode */
+html:not(.dark) .bg-white\/70 .text-gray-600 {
+  color: #4b5563 !important;
+}
+
+html:not(.dark) .bg-white\/70 .text-gray-900 {
+  color: #111827 !important;
+}
+
+/* Button Text Fixes */
+html:not(.dark) button {
+  color: inherit;
+}
+
+html:not(.dark) .adhocon-button {
+  color: white !important;
+}
+
+/* Navigation Text */
+html:not(.dark) .nav-button {
+  color: #374151 !important;
+}
+
+/* Specific Welcome Section Fix */
+html:not(.dark) .welcome-title {
+  color: #111827 !important;
+}
+
+html:not(.dark) .welcome-subtitle {
+  color: #4b5563 !important;
+}
