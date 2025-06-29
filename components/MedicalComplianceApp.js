@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { createProject, getUserProjects } from '../lib/supabase';
 import LanguageSwitcher from './LanguageSwitcher';
 import DarkModeToggle from './DarkModeToggle';
+import ClassificationAssistant from './ClassificationAssistant';
 
 // Main App Component
 const MedicalComplianceApp = () => {
@@ -20,6 +21,7 @@ const MedicalComplianceApp = () => {
   const [projects, setProjects] = useState([]);
   const [showGDPRConsent, setShowGDPRConsent] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [showClassification, setShowClassification] = useState(false);
 
   // Initialize app
   useEffect(() => {
@@ -55,6 +57,24 @@ const MedicalComplianceApp = () => {
     } finally {
       setLoadingProjects(false);
     }
+  };
+
+  // Classification Assistant Handlers
+  const handleStartClassification = () => {
+    setShowClassification(true);
+    setCurrentStep('classification');
+  };
+
+  const handleClassificationComplete = (results) => {
+    // Classification Results in localStorage speichern für Projekt-Erstellung
+    localStorage.setItem('classification_results', JSON.stringify(results));
+    setShowClassification(false);
+    setCurrentStep('project_creation');
+  };
+
+  const handleClassificationBack = () => {
+    setShowClassification(false);
+    setCurrentStep('welcome');
   };
 
   // GDPR Consent Component
@@ -360,6 +380,19 @@ const MedicalComplianceApp = () => {
     });
     const [creating, setCreating] = useState(false);
 
+    // Load classification results if available
+    useEffect(() => {
+      const classificationResults = localStorage.getItem('classification_results');
+      if (classificationResults) {
+        const results = JSON.parse(classificationResults);
+        setProjectData(prev => ({
+          ...prev,
+          samdClass: results.classification || '',
+          productType: results.aiClassification ? 'aiamd' : 'samd'
+        }));
+      }
+    }, []);
+
     const handleSubmit = async () => {
       if (!user) return;
 
@@ -387,6 +420,8 @@ const MedicalComplianceApp = () => {
           setCurrentProject(data[0]);
           setCurrentStep('dashboard');
           await loadUserProjects(); // Refresh projects list
+          // Clear classification results
+          localStorage.removeItem('classification_results');
         }
       } catch (error) {
         console.error('Error creating project:', error);
@@ -625,6 +660,18 @@ const MedicalComplianceApp = () => {
     return <AuthComponent />;
   }
 
+  if (currentStep === 'classification') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <NavigationHeader />
+        <ClassificationAssistant 
+          onComplete={handleClassificationComplete}
+          onBack={handleClassificationBack}
+        />
+      </div>
+    );
+  }
+
   if (currentStep === 'project_creation') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -692,18 +739,29 @@ const MedicalComplianceApp = () => {
                   <span className="text-gray-600 dark:text-gray-300">Lade Projekte...</span>
                 </div>
               ) : (
-                <button
-                  onClick={() => setCurrentStep('project_creation')}
-                  className="adhocon-button px-8 py-4 rounded-2xl font-semibold text-lg flex items-center gap-3 mx-auto group shadow-2xl"
-                >
-                  <Plus className="w-6 h-6" />
-                  {t('project.createFirst')}
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={handleStartClassification}
+                    className="adhocon-button px-8 py-4 rounded-2xl font-semibold text-lg flex items-center gap-3 group shadow-2xl"
+                  >
+                    <Brain className="w-6 h-6" />
+                    Classification Assistant
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                  </button>
+                  
+                  <button
+                    onClick={() => setCurrentStep('project_creation')}
+                    className="px-8 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-2xl font-semibold text-lg flex items-center gap-3 group transition-all duration-300"
+                  >
+                    <Plus className="w-6 h-6" />
+                    Direkt Projekt erstellen
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                  </button>
+                </div>
               )}
               
               <p className="text-gray-500 dark:text-gray-400 mt-6">
-                ☁️ Cloud-Synchronisation • 📋 Personalisierte Roadmap • 🎯 KI-gestützte Analyse
+                🧠 IMDRF & MDCG 2019-11 basiert • 📋 Automatische Klassifizierung • 🎯 Maßgeschneiderte Roadmap
               </p>
             </div>
           </div>
