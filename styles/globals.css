@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark Mode Configuration */
+.dark {
+  color-scheme: dark;
+}
+
+/* Logo Fixes für Dark Mode */
+.dark img[src="/logo.svg"],
+.dark img[alt*="Logo"] {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* ADHOCON Button Fixes für Dark Mode */
+.dark .adhocon-button {
+  background: linear-gradient(135deg, #006caa 0%, #003459 100%);
+  color: white;
+  border: 1px solid #006caa;
+}
+
+.dark .adhocon-button:hover {
+  background: linear-gradient(135deg, #0080cc 0%, #004466 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(0, 108, 170, 0.4);
+}
+
+/* Input Fixes für Dark Mode */
+.dark .adhocon-input {
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: #ffffff;
+}
+
+.dark .adhocon-input:focus {
+  border-color: #006caa;
+  box-shadow: 0 0 0 3px rgba(0, 108, 170, 0.1);
+}
+
+.dark .adhocon-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Navigation Button Fixes */
+.dark .nav-button {
+  background: rgba(55, 65, 81, 0.8);
+  color: #ffffff;
+  border: 1px solid #4b5563;
+}
+
+.dark .nav-button:hover {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Glassmorphism Fixes für Dark Mode */
+.dark .glass-effect {
+  background: rgba(31, 41, 55, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(75, 85, 99, 0.2);
+}
+
+/* Shadow Fixes für Dark Mode */
+.dark .adhocon-shadow {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Border Fixes */
+.dark .border-gray-200 {
+  border-color: #4b5563;
+}
+
+.dark .border-white\/20 {
+  border-color: rgba(75, 85, 99, 0.2);
+}
+
+/* Card/Feature Box Fixes - Nur wenn nötig */
+.dark .bg-white\/70 {
+  background: rgba(31, 41, 55, 0.7) !important;
+}
+
+.dark .bg-white\/80 {
+  background: rgba(31, 41, 55, 0.8) !important;
+}
+/* styles/globals.css - AM ENDE HINZUFÜGEN */
+
+/* FORCE LIGHT MODE BACKGROUND */
+html:not(.dark) body {
+  background: linear-gradient(135deg, #dbeafe 0%, #ffffff 50%, #f9fafb 100%) !important;
+}
+
+/* FORCE DARK MODE BACKGROUND */
+html.dark body {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #111827 100%) !important;
+}
+
+/* FORCE CONTAINER BACKGROUNDS */
+html:not(.dark) .min-h-screen {
+  background: linear-gradient(135deg, #dbeafe 0%, #ffffff 50%, #f9fafb 100%) !important;
+}
+
+html.dark .min-h-screen {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #111827 100%) !important;
+}
+
+/* TEST: Sichtbare Änderungen */
+html.dark .test-change {
+  background-color: red !important;
+  color: white !important;
+}
+
+html:not(.dark) .test-change {
+  background-color: blue !important;
+  color: white !important;
+}
