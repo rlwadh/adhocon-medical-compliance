@@ -3,36 +3,59 @@ import { User, Shield, FileText, CheckCircle, Clock, Brain, Settings, LogOut, Do
 import Link from 'next/link';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import { useAuth } from '../contexts/AuthContext';
+import { createProject, getUserProjects } from '../lib/supabase';
 import LanguageSwitcher from './LanguageSwitcher';
 import DarkModeToggle from './DarkModeToggle';
 
 // Main App Component
 const MedicalComplianceApp = () => {
-  const [user, setUser] = useState(null);
   const { t } = useLanguage();
   const { isDarkMode } = useDarkMode();
+  const { user, profile, loading, signUp, signIn, signOut } = useAuth();
+  
   const [currentProject, setCurrentProject] = useState(null);
   const [viewMode, setViewMode] = useState('dashboard');
   const [currentStep, setCurrentStep] = useState('welcome');
   const [projects, setProjects] = useState([]);
   const [showGDPRConsent, setShowGDPRConsent] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(false);
 
   // Initialize app
   useEffect(() => {
-    const savedUser = localStorage.getItem('adhocon_user');
-    const savedProjects = localStorage.getItem('adhocon_projects');
     const gdprConsent = localStorage.getItem('adhocon_gdpr_consent');
-    
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    if (savedProjects) {
-      setProjects(JSON.parse(savedProjects));
-    }
     if (!gdprConsent) {
       setShowGDPRConsent(true);
     }
   }, []);
+
+  // Load projects when user changes
+  useEffect(() => {
+    if (user) {
+      loadUserProjects();
+    } else {
+      setProjects([]);
+      setCurrentProject(null);
+    }
+  }, [user]);
+
+  const loadUserProjects = async () => {
+    if (!user) return;
+    
+    setLoadingProjects(true);
+    try {
+      const { data, error } = await getUserProjects(user.id);
+      if (error) {
+        console.error('Error loading projects:', error);
+      } else {
+        setProjects(data || []);
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
 
   // GDPR Consent Component
   const GDPRConsent = () => (
@@ -64,15 +87,15 @@ const MedicalComplianceApp = () => {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-800 dark:text-gray-200 font-medium">Projektdaten für Medical Device Compliance</span>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Projektdaten in Supabase Datenbank</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-800 dark:text-gray-200 font-medium">Fortschritt Ihrer Registrierungsprozesse</span>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Benutzerkonten und Profile</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-800 dark:text-gray-200 font-medium">Dokumente (lokal in Ihrem Browser)</span>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Compliance-Dokumente sicher verschlüsselt</span>
                 </li>
               </ul>
             </div>
@@ -93,7 +116,7 @@ const MedicalComplianceApp = () => {
                 </li>
                 <li className="flex items-start gap-2">
                   <Award className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-800 dark:text-gray-200 font-medium">Widerruf der Einverständniserklärung</span>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Multi-Device Synchronisation</span>
                 </li>
               </ul>
             </div>
@@ -128,7 +151,7 @@ const MedicalComplianceApp = () => {
     </div>
   );
 
-  // Login/Register Component
+  // Login/Register Component with Supabase
   const AuthComponent = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [formData, setFormData] = useState({
@@ -138,17 +161,41 @@ const MedicalComplianceApp = () => {
       firstName: '',
       lastName: ''
     });
+    const [authLoading, setAuthLoading] = useState(false);
+    const [authError, setAuthError] = useState('');
 
-    const handleSubmit = () => {
-      const userData = {
-        email: formData.email,
-        companyName: formData.companyName || 'Personal',
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        joinDate: new Date().toISOString()
-      };
-      localStorage.setItem('adhocon_user', JSON.stringify(userData));
-      setUser(userData);
+    const handleSubmit = async () => {
+      if (!formData.email || !formData.password) {
+        setAuthError('Email und Passwort sind erforderlich');
+        return;
+      }
+
+      setAuthLoading(true);
+      setAuthError('');
+
+      try {
+        if (isLogin) {
+          const { data, error } = await signIn(formData.email, formData.password);
+          if (error) {
+            setAuthError(error.message);
+          }
+        } else {
+          const { data, error } = await signUp(formData.email, formData.password, {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            companyName: formData.companyName
+          });
+          if (error) {
+            setAuthError(error.message);
+          } else {
+            setAuthError('Registrierung erfolgreich! Bitte prüfen Sie Ihre E-Mails.');
+          }
+        }
+      } catch (error) {
+        setAuthError('Ein unerwarteter Fehler ist aufgetreten');
+      } finally {
+        setAuthLoading(false);
+      }
     };
 
     return (
@@ -194,9 +241,15 @@ const MedicalComplianceApp = () => {
             <p className="text-gray-600 dark:text-gray-300 font-medium">Medical Device Compliance Tool</p>
             <div className="flex items-center justify-center gap-2 mt-2">
               <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Kostenlos • KI-Powered • GDPR-konform</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Cloud-basiert • KI-Powered • GDPR-konform</span>
             </div>
           </div>
+
+          {authError && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-700 dark:text-red-300 text-sm">{authError}</p>
+            </div>
+          )}
 
           <div className="space-y-5">
             {!isLogin && (
@@ -263,10 +316,17 @@ const MedicalComplianceApp = () => {
 
             <button
               onClick={handleSubmit}
-              className="w-full adhocon-button p-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-3 group"
+              disabled={authLoading}
+              className="w-full adhocon-button p-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLogin ? 'Anmelden' : 'Registrieren'}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              {authLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  {isLogin ? 'Anmelden' : 'Registrieren'}
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </>
+              )}
             </button>
           </div>
 
@@ -281,7 +341,7 @@ const MedicalComplianceApp = () => {
           
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600 text-center">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              🛡️ SSL-verschlüsselt • 🇪🇺 GDPR-konform • 🔒 Daten bleiben in Ihrem Browser
+              🛡️ SSL-verschlüsselt • 🇪🇺 GDPR-konform • ☁️ Cloud-Synchronisation
             </p>
           </div>
         </div>
@@ -289,7 +349,7 @@ const MedicalComplianceApp = () => {
     );
   };
 
-  // Project Creation Component
+  // Project Creation Component with Supabase
   const ProjectCreation = () => {
     const [projectData, setProjectData] = useState({
       name: '',
@@ -298,60 +358,42 @@ const MedicalComplianceApp = () => {
       targetMarkets: [],
       description: ''
     });
+    const [creating, setCreating] = useState(false);
 
     const handleSubmit = async () => {
-      const newProject = {
-        id: Date.now().toString(),
-        ...projectData,
-        createdAt: new Date().toISOString(),
-        status: 'setup',
-        currentPhase: 'qms_setup',
-        progress: 0,
-        tasks: []
-      };
+      if (!user) return;
 
-      // Use Claude to generate initial assessment and tasks
-      const prompt = `As a Medical Device Regulatory Expert, analyze this new project:
-      Product: ${projectData.name}
-      Type: ${projectData.productType}
-      SaMD Class: ${projectData.samdClass}
-      Target Markets: ${projectData.targetMarkets.join(', ')}
-      Description: ${projectData.description}
-
-      Generate initial assessment and first 3 tasks for QMS setup according to ISO 13485. Respond with JSON:
-      {
-        "riskAssessment": "brief risk analysis",
-        "regulatoryPath": "recommended regulatory approach",
-        "initialTasks": [
-          {"id": 1, "title": "task title", "description": "task description", "priority": "high/medium/low", "estimatedHours": number},
-          {"id": 2, "title": "task title", "description": "task description", "priority": "high/medium/low", "estimatedHours": number},
-          {"id": 3, "title": "task title", "description": "task description", "priority": "high/medium/low", "estimatedHours": number}
-        ],
-        "nextMilestone": "what comes after these tasks"
-      }`;
-
+      setCreating(true);
       try {
-        const claudeResponse = await window.claude.complete(prompt);
-        const assessment = JSON.parse(claudeResponse);
-        
-        newProject.riskAssessment = assessment.riskAssessment;
-        newProject.regulatoryPath = assessment.regulatoryPath;
-        newProject.tasks = assessment.initialTasks;
-        newProject.nextMilestone = assessment.nextMilestone;
-      } catch (error) {
-        console.error('Claude assessment failed:', error);
-        newProject.tasks = [
-          {id: 1, title: "QMS Documentation Setup", description: "Establish basic Quality Management System documentation structure", priority: "high", estimatedHours: 8},
-          {id: 2, title: "Risk Management Plan", description: "Create ISO 14971 compliant risk management plan", priority: "high", estimatedHours: 12},
-          {id: 3, title: "Design Controls Framework", description: "Implement design controls according to ISO 13485", priority: "medium", estimatedHours: 16}
-        ];
-      }
+        const newProject = {
+          user_id: user.id,
+          name: projectData.name,
+          product_type: projectData.productType,
+          samd_class: projectData.samdClass,
+          target_markets: projectData.targetMarkets,
+          description: projectData.description,
+          status: 'setup',
+          current_phase: 'qms_setup',
+          progress: 0,
+          created_at: new Date().toISOString()
+        };
 
-      const updatedProjects = [...projects, newProject];
-      setProjects(updatedProjects);
-      localStorage.setItem('adhocon_projects', JSON.stringify(updatedProjects));
-      setCurrentProject(newProject);
-      setCurrentStep('dashboard');
+        const { data, error } = await createProject(newProject);
+        
+        if (error) {
+          console.error('Error creating project:', error);
+          alert('Fehler beim Erstellen des Projekts');
+        } else {
+          setCurrentProject(data[0]);
+          setCurrentStep('dashboard');
+          await loadUserProjects(); // Refresh projects list
+        }
+      } catch (error) {
+        console.error('Error creating project:', error);
+        alert('Ein unerwarteter Fehler ist aufgetreten');
+      } finally {
+        setCreating(false);
+      }
     };
 
     return (
@@ -476,14 +518,21 @@ const MedicalComplianceApp = () => {
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
             <button
               onClick={handleSubmit}
-              className="w-full adhocon-button p-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-3 group"
+              disabled={creating}
+              className="w-full adhocon-button p-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-3 group disabled:opacity-50"
             >
-              <Brain className="w-6 h-6" />
-              Projekt erstellen & KI-Analyse starten
-              <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+              {creating ? (
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <Brain className="w-6 h-6" />
+                  Projekt in Datenbank erstellen
+                  <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                </>
+              )}
             </button>
             <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
-              {t('project.benefits')}
+              ☁️ Wird sicher in Supabase gespeichert • 🔄 Multi-Device Synchronisation
             </p>
           </div>
         </div>
@@ -533,22 +582,16 @@ const MedicalComplianceApp = () => {
           
           <div className="flex items-center gap-3 bg-white/50 dark:bg-gray-700/50 rounded-xl px-4 py-2">
             <div className="w-8 h-8 adhocon-gradient rounded-full flex items-center justify-center text-white text-sm font-bold">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
+              {profile?.first_name?.[0]}{profile?.last_name?.[0]}
             </div>
             <div className="text-sm">
-              <p className="font-medium text-gray-900 dark:text-white">{user?.firstName} {user?.lastName}</p>
-              <p className="text-gray-500 dark:text-gray-400">{user?.companyName}</p>
+              <p className="font-medium text-gray-900 dark:text-white">{profile?.first_name} {profile?.last_name}</p>
+              <p className="text-gray-500 dark:text-gray-400">{profile?.company_name || 'Personal'}</p>
             </div>
           </div>
           
           <button
-            onClick={() => {
-              localStorage.removeItem('adhocon_user');
-              localStorage.removeItem('adhocon_projects');
-              setUser(null);
-              setProjects([]);
-              setCurrentProject(null);
-            }}
+            onClick={signOut}
             className="p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-xl transition-all duration-300"
             title={t('nav.logout')}
           >
@@ -558,6 +601,20 @@ const MedicalComplianceApp = () => {
       </div>
     </header>
   );
+
+  // Loading screen
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto adhocon-gradient rounded-full flex items-center justify-center mb-4 animate-pulse">
+            <img src="/logo.svg" alt="ADHOCON.AI" className="w-10 h-10" />
+          </div>
+          <p className="text-gray-600 dark:text-gray-300">Lade ADHOCON.AI...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Main render logic
   if (showGDPRConsent) {
@@ -600,8 +657,8 @@ const MedicalComplianceApp = () => {
                   A
                 </div>
               </div>
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('welcome.title')}</h2>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">{t('welcome.subtitle')}</p>
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 welcome-title">{t('welcome.title')}</h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 welcome-subtitle">{t('welcome.subtitle')}</p>
               
               <div className="grid md:grid-cols-3 gap-6 mb-12 text-left">
                 <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 border border-white/20 dark:border-gray-700/20 shadow-lg">
@@ -629,23 +686,30 @@ const MedicalComplianceApp = () => {
                 </div>
               </div>
               
-              <button
-                onClick={() => setCurrentStep('project_creation')}
-                className="adhocon-button px-8 py-4 rounded-2xl font-semibold text-lg flex items-center gap-3 mx-auto group shadow-2xl"
-              >
-                <Plus className="w-6 h-6" />
-                {t('project.createFirst')}
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-              </button>
+              {loadingProjects ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-gray-600 dark:text-gray-300">Lade Projekte...</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCurrentStep('project_creation')}
+                  className="adhocon-button px-8 py-4 rounded-2xl font-semibold text-lg flex items-center gap-3 mx-auto group shadow-2xl"
+                >
+                  <Plus className="w-6 h-6" />
+                  {t('project.createFirst')}
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </button>
+              )}
               
               <p className="text-gray-500 dark:text-gray-400 mt-6">
-                {t('project.benefits')}
+                ☁️ Cloud-Synchronisation • 📋 Personalisierte Roadmap • 🎯 KI-gestützte Analyse
               </p>
             </div>
           </div>
         ) : (
           <div className="text-center py-20">
-            <p className="text-gray-600 dark:text-gray-300">{t('project.loading')}</p>
+            <p className="text-gray-600 dark:text-gray-300">Dashboard wird geladen...</p>
           </div>
         )}
       </div>

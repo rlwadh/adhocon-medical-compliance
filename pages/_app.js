@@ -1,13 +1,16 @@
-// pages/_app.js - KOMPLETT ERSETZEN
+// pages/_app.js - ERSETZEN
 import '../styles/globals.css';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { DarkModeProvider } from '../contexts/DarkModeContext';
+import { AuthProvider } from '../contexts/AuthContext';
 
 function MyApp({ Component, pageProps }) {
   return (
     <DarkModeProvider>
       <LanguageProvider>
-        <Component {...pageProps} />
+        <AuthProvider>
+          <Component {...pageProps} />
+        </AuthProvider>
       </LanguageProvider>
     </DarkModeProvider>
   );
